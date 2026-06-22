@@ -1,0 +1,15 @@
+{
+  "name": "hermes-agent-mydocs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hermes Agent 代码研究文档站点",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.5.0"
+  }
+}
