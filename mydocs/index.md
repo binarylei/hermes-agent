@@ -11,7 +11,7 @@ hero:
       link: /hermes-整体架构分析
     - theme: alt
       text: 查看源码
-      link: https://github.com/NousResearch/hermes-agent
+      link: https://github.com/binarylei/hermes-agent/tree/v2026.6.19
 
 features:
   - icon: 🏗️
@@ -43,7 +43,7 @@ features:
 
 ## 关于本项目
 
-本目录存放对 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 代码库进行深入研究后生成的分析文档。
+本目录存放对 [Hermes Agent](https://github.com/binarylei/hermes-agent/tree/v2026.6.19) 代码库进行深入研究后生成的分析文档。
 
 Hermes Agent 是由 [Nous Research](https://nousresearch.com) 构建的自改进 AI agent，通过同一套 agent 核心在 CLI、TUI、消息网关（Telegram、Discord、Slack 等约 20 个平台）和 Electron 桌面应用中运行。
 

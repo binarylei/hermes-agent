@@ -87,3 +87,8 @@ scripts/run_tests.sh
 ## 代码研究文档
 
 对代码库的深入分析和研究笔记存放在 `mydocs/` 目录中。查看 `mydocs/README.md` 获取已有文档的索引。`mydocs/` 内的文件名使用中文，专业英语术语保留。
+
+`mydocs/` 是一个基于 VitePress 的 GitHub Pages 站点，用于发布代码研究文档。
+
+- **GitHub 地址**: `https://github.com/binarylei/hermes-agent/tree/v2026.6.19`，`mydocs/` 内所有引用 Hermes 仓库的链接均使用此地址。
+- **新增文章时**，必须同步更新 `mydocs/.vitepress/config.ts` 中的 `sidebar` 配置，确保侧边栏条目与实际 `.md` 文件一一对应。

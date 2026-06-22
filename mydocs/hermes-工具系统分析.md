@@ -227,21 +227,27 @@ class ToolRegistry:
                            ↓
 ┌─ handle_function_call 内部 ─────────────────────────────────┐
 │  ① coerce_tool_args → 类型校正 (string→int 等)              │
-│  ② apply_tool_request_middleware                             │
-│  ③ pre_tool_call 插件钩子 (可拦截)                          │
-│  ④ 安全门控 (tirith + dangerous command + 审批)             │
-│  ⑤ registry.dispatch(name, args)                            │
-│     → _tools[name].handler(args, task_id=...)                │
-│       → terminal_tool(command=..., background=...)           │
-│         → _get_env_config → 读 TERMINAL_ENV/TIMEOUT/CWD     │
-│         → _create_environment → LocalEnvironment/Docker/... │
-│         → _check_all_guards → 危险命令审批                  │
-│         → env.execute(command, cwd=..., timeout=...)         │
-│           → subprocess.Popen / 容器执行                      │
-│           → 输出截断 + ANSI strip + 敏感信息脱敏            │
-│         → return {"output":"...", "exit_code":0}             │
-│  ⑥ post_tool_call 钩子                                      │
-│  ⑦ transform_tool_result 插件钩子                           │
+│  ② [有桥接时] tool_search / describe / call 内联处理         │
+│     详见 [工具搜索桥接分析](hermes-工具搜索桥接分析.md)       │
+│  ③ tool_request 中间件                                      │
+│  ④ Agent 环路守卫：_AGENT_LOOP_TOOLS 拦截                   │
+│     └─ todo / memory / session_search / delegate_task        │
+│        这些必须由 executor 内联处理，误入则返回 error         │
+│  ⑤ pre_tool_call 插件阻断检查                               │
+│  ⑥ ACP 编辑审批（IDE 端对 write_file/patch 的审批）         │
+│  ⑦ registry.dispatch(name, args)                            │
+│     └─ 包装在 run_tool_execution_middleware 中               │
+│       → _tools[name].handler(args, task_id=...)              │
+│         → terminal_tool(command=..., background=...)         │
+│           → _get_env_config → 读 TERMINAL_ENV/TIMEOUT/CWD   │
+│           → _create_environment → LocalEnvironment/Docker/.. │
+│           → _check_all_guards → 危险命令审批                │
+│           → env.execute(command, cwd=..., timeout=...)       │
+│             → subprocess.Popen / 容器执行                    │
+│             → 输出截断 + ANSI strip + 敏感信息脱敏          │
+│           → return {"output":"...", "exit_code":0}           │
+│  ⑧ post_tool_call 观察钩子（带 duration_ms、status）        │
+│  ⑨ transform_tool_result 变换钩子                           │
 │  return result (JSON 字符串)                                 │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -366,7 +372,7 @@ while (api_call_count < max_iterations and iteration_budget.remaining > 0) \
 
 #### 阶段 4：`handle_function_call` 调度前处理
 
-`model_tools.py:876`，这是工具调度的中心枢纽，做 5 层前置处理后才真正执行：
+`model_tools.py:876`，这是工具调度的中心枢纽，做多层前置处理后才真正执行：
 
 ```
 ① coerce_tool_args(name, args)            (第 917 行)
@@ -375,17 +381,26 @@ while (api_call_count < max_iterations and iteration_budget.remaining > 0) \
    → 防止 handler 因类型不匹配崩溃
 
 ② 工具搜索桥检查                            (第 928-995 行)
-   → terminal 不是桥接工具，跳过
+   → tool_search / tool_describe → 内联返回目录/ schema
+   → tool_call → 解包为底层工具名 + 递归调用 handle_function_call
+   → 详见 [工具搜索桥接分析](hermes-工具搜索桥接分析.md)
 
-③ apply_tool_request_middleware             (第 998 行)
+③ tool_request 中间件                        (第 998 行)
    → 运行中间件链，可修改参数或记录审计
 
-④ pre_tool_call 插件钩子                     (第 1031 行)
+④ Agent 环路守卫                            (第 1018 行)
+   → todo / memory / session_search / delegate_task 误入此路径
+   → 直接返回 error（这些工具必须由 executor 内联处理）
+
+⑤ pre_tool_call 插件钩子                     (第 1031 行)
    → 插件可拦截调用，返回 blocked/reason
-   → 安全策略检查（tirith + dangerous command patterns）
    → blocked → 直接返回错误 JSON，不执行 handler
 
-⑤ registry.dispatch(name, args, ...)       (第 1110 行)
+⑥ ACP 编辑审批                              (第 1069 行)
+   → IDE 端对 write_file / patch 做编辑审批
+   → CLI/gateway 路径不受影响（ContextVar 未绑定）
+
+⑦ registry.dispatch(name, args, ...)       (第 1110 行)
    → 创建 _dispatch 闭包 → 包在 run_tool_execution_middleware 中
    → 真正执行工具 handler
 ```
@@ -445,16 +460,20 @@ agent 循环:
 
 #### Agent 级工具（绕过 registry.dispatch）
 
-有 4 个工具不走 `registry.dispatch`，而是在 `handle_function_call` 中直接拦截处理：
+有 6 个工具不走 `registry.dispatch`，在到达 `handle_function_call` **之前**就被 executor（`tool_executor.py`）和 `invoke_tool`（`agent/agent_runtime_helpers.py`）内联拦截处理：
 
 | 工具 | 拦截位置 | 原因 |
 |------|---------|------|
-| `todo` | `run_agent.py` | 需要直接操作 agent 实例的内部 todo 列表 |
-| `memory` | `run_agent.py` | 涉及记忆注入/过期等复杂生命周期 |
-| `session_search` | `run_agent.py` | 需要访问代理的会话数据库 |
-| `delegate_task` | `model_tools.py` | 需要做子 agent 数量限制、递归深度检查、配额耗尽提示 |
+| `todo` | executor / invoke_tool | 需操作 agent 实例的内部 `_todo_store` |
+| `memory` | executor / invoke_tool | 需 `_memory_store` + 外部 memory_manager 桥接 |
+| `session_search` | executor / invoke_tool | 需 agent 的 `SessionDB` + 过滤当前 session |
+| `delegate_task` | executor / invoke_tool | 需 `parent_agent=self` 传递上下文 |
+| `clarify` | executor 串行路径 | 需 `clarify_callback` 用户交互弹窗 |
+| `read_terminal` | executor 串行路径 | 桌面版 TUI 专用回调 |
 
-这些工具在 `_AGENT_LOOP_TOOLS` 集合中标记，`handle_function_call` 在通用 dispatch 路径之前检查。
+这些工具在 `_AGENT_LOOP_TOOLS`（`model_tools.py:569`）中标记：`{"todo", "memory", "session_search", "delegate_task"}`。`handle_function_call` 在第 ④ 步（Agent 环路守卫）中检查此集合——如果它们因某种原因到达此处，直接返回 error，而非执行。
+
+executor 的 18 种分发分支中，这 6 个工具匹配在最前面、最特化的分支上（详见 [工具执行引擎分析 §5](hermes-工具执行引擎分析.md)）。
 
 #### MCP 工具（透明代理）
 

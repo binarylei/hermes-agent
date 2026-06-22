@@ -21,7 +21,7 @@ export default defineConfig({
     // 顶部导航
     nav: [
       { text: '文档索引', link: '/' },
-      { text: 'GitHub', link: 'https://github.com/NousResearch/hermes-agent' },
+      { text: 'GitHub', link: 'https://github.com/binarylei/hermes-agent/tree/v2026.6.19' },
     ],
 
     // 侧边栏
@@ -37,6 +37,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: '整体架构分析', link: '/hermes-整体架构分析' },
+          { text: 'AIAgent 架构分析', link: '/hermes-AIAgent架构分析' },
           { text: 'LLM 客户端分析', link: '/hermes-LLM客户端分析' },
         ],
       },
@@ -45,6 +46,8 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: '工具系统分析', link: '/hermes-工具系统分析' },
+          { text: '工具执行引擎分析', link: '/hermes-工具执行引擎分析' },
+          { text: '工具搜索桥接分析', link: '/hermes-工具搜索桥接分析' },
           { text: '文件工具分析', link: '/hermes-文件工具分析' },
           { text: '技能执行分析', link: '/hermes-技能执行分析' },
         ],
@@ -65,7 +68,7 @@ export default defineConfig({
 
     // 社交链接（显示在顶栏右侧）
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/NousResearch/hermes-agent' },
+      { icon: 'github', link: 'https://github.com/binarylei/hermes-agent/tree/v2026.6.19' },
     ],
 
     // 页脚
