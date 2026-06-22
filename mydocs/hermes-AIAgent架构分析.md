@@ -251,17 +251,18 @@ def _dispatch_delegate_task(self)    # delegate_task 参数解包与调用
 
 #### 3.4.6 上下文管理
 
-| 模块 | 大小 | 职责 |
-|---|---|---|
-| [agent/context_compressor.py](../agent/context_compressor.py) | ~119K | 旧消息摘要压缩、token 估算、压缩策略选择 |
-| [agent/conversation_compression.py](../agent/conversation_compression.py) | ~45K | 压缩编排：判断触发时机、调用压缩器、结果集成 |
+| 模块                                                                        | 大小    | 职责                      |
+| ------------------------------------------------------------------------- | ----- | ----------------------- |
+| [agent/context_compressor.py](../agent/context_compressor.py)             | ~119K | 旧消息摘要压缩、token 估算、压缩策略选择 |
+| [agent/conversation_compression.py](../agent/conversation_compression.py) | ~45K  | 压缩编排：判断触发时机、调用压缩器、结果集成  |
+|                                                                           |       |                         |
 
 #### 3.4.7 记忆管理
 
-| 模块 | 大小 | 职责 |
-|---|---|---|
-| [agent/memory_manager.py](../agent/memory_manager.py) | ~38K | 记忆同步：turn 结束后的消息写入、prefetch 预取、上下文注入 |
-| [agent/memory_provider.py](../agent/memory_provider.py) | ~13K | MemoryProvider 抽象基类 |
+| 模块                                                      | 大小   | 职责                                   |
+| ------------------------------------------------------- | ---- | ------------------------------------ |
+| [agent/memory_manager.py](../agent/memory_manager.py)   | ~38K | 记忆同步：turn 结束后的消息写入、prefetch 预取、上下文注入 |
+| [agent/memory_provider.py](../agent/memory_provider.py) | ~13K | MemoryProvider 抽象基类                  |
 
 #### 3.4.8 LLM 适配器
 

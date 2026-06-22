@@ -139,4 +139,5 @@ RELEASE_v*.md
 apps/desktop/demo/
 
 
-.idea
+.idea/
+.obsidian/

@@ -34,6 +34,7 @@ features:
 | [LLM 客户端分析](/hermes-LLM客户端分析) | Hermes LLM 客户端架构：SDK 选型（openai/anthropic/boto3）、Provider 插件系统（28 个）、Transport 传输层、API 调用全链路 | 2026-06-17 |
 | [工具系统分析](/hermes-工具系统分析) | Hermes 工具系统全景分析：60+ 工具总览、设计原则、核心工具深度剖析、与 Claude Code 对比 | 2026-06-15 |
 | [工具执行引擎分析](/hermes-工具执行引擎分析) | Hermes 工具执行引擎深度分析：tool_executor/tool_dispatch_helpers/tool_guardrails 三文件协作、串行/并发调度、环路检测守卫、与 LLM 配合机制 | 2026-06-22 |
+| [上下文压缩机制分析](/hermes-上下文压缩机制分析) | Hermes 上下文压缩机制深度分析：问题定义与设计约束、两层架构分工、4 阶段压缩算法、LLM 结构化摘要模板、编排层生命周期、多层降级与防抖动机制 | 2026-06-22 |
 | [工具搜索桥接分析](/hermes-工具搜索桥接分析) | Hermes 工具搜索桥接深度分析：渐进式工具暴露机制、三元桥接设计（tool_search/tool_describe/tool_call）、BM25 检索目录、双层调度解包、与 MCP 协议对比 | 2026-06-22 |
 | [文件工具分析](/hermes-文件工具分析) | Hermes 文件操作工具全景分析：工作路径管理机制（三层 CWD 架构 + 沙箱路径映射）+ 4 个文件工具深度剖析 | 2026-06-15 |
 | [技能执行分析](/hermes-技能执行分析) | Hermes 技能完整生命周期分析：sync_skills 播种机制、7 个运行时关键过程、消息构建 6 步组装、有/无脚本执行差异、路径一致性保证、执行环境分析 | 2026-06-18 |

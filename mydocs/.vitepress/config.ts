@@ -39,6 +39,7 @@ export default defineConfig({
           { text: '整体架构分析', link: '/hermes-整体架构分析' },
           { text: 'AIAgent 架构分析', link: '/hermes-AIAgent架构分析' },
           { text: 'LLM 客户端分析', link: '/hermes-LLM客户端分析' },
+          { text: '上下文压缩机制分析', link: '/hermes-上下文压缩机制分析' },
         ],
       },
       {
