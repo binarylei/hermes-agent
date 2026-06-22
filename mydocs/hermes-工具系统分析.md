@@ -161,17 +161,12 @@ def check_browser_requirements():
 
 ### 3.4 工具搜索（渐进式工具暴露）
 
-`tools/tool_search.py` 实现了一个关键设计：当 MCP 和插件工具数量较多时，Hermes 不将所有工具一次性塞入系统提示词，而是用 3 个"桥接工具"替代：
+当 MCP 和插件工具过多，Hermes 用 3 个桥接工具（`tool_search` / `tool_describe` / `tool_call`）替换非核心工具，核心工具（`_HERMES_CORE_TOOLS`）永不延迟。详见 [工具搜索桥接分析](hermes-工具搜索桥接分析.md)。
 
-- `tool_search` — 按关键词搜索可用工具
-- `tool_describe` — 获取指定工具的详细 schema
-- `tool_call` — 通过桥接调用工具（所有 guardrail 依旧生效）
-
-**核心设计约束：**
-1. `_HERMES_CORE_TOOLS` 中的核心工具 **永不延迟加载**
-2. 当可延迟工具占模型上下文窗口不足 `threshold_pct`（默认 10%）时，工具搜索是 no-op
-3. 目录是 **无状态** 的，每次组装工具数组时重建（避免了 OpenClaw 的 cron 回归问题 #84141）
-4. 桥接工具路由经过 `model_tools.handle_function_call`，approval 流、插件 hook、结果截断全部完全一致
+核心设计约束：
+1. 核心工具永不延迟加载；低于 `threshold_pct`（默认 10%）时 no-op
+2. 目录无状态，每次装配时重建
+3. 桥接工具路由走完整审批/护栏链
 
 ### 3.5 同步/异步桥接
 

@@ -34,6 +34,8 @@ Hermes 采用 **"窄核心、广边缘"（Narrow Core, Wide Edge）** 的设计�
 | `hermes_constants.py` | 568 | 共享常量，`get_hermes_home()`、`display_hermes_home()` 多 profile 感知路径 |
 | `hermes_logging.py` | 536 | 日志基础设施（agent.log / errors.log / gateway.log） |
 
+> **深入分析**：第 1-2 层的核心引擎与 agent 子系统的完整架构剖析、运行机制、模块分工，详见 [hermes-AIAgent架构分析.md](hermes-AIAgent架构分析.md)。
+
 ### 第 2 层：Agent 子系统（`agent/`，116 文件，~65K 行）
 
 | 模块 | 行数 | 职责 |
