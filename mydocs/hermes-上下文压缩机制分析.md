@@ -76,14 +76,14 @@ Phase 1: 工具结果裁剪（无 LLM 调用）→ Phase 2: 边界确定（Head/
 
 Claude Code 采用**层级递进**策略——四层依次升级，够用即止：
 
-| 层级 | 策略 | Hermes 对应 | 关键差异 |
-|------|------|------------|---------|
-| **Layer 1: Snip** | 零成本整轮移除（空结果 turn、被拒工具调用） | Phase 1 去重 | CC 移除整 turn；Hermes 裁剪 content 级别 |
-| **Layer 2: Microcompact** | 缓存感知精简——静默替换旧 tool_result 为通用占位符 | Phase 1 工具结果裁剪 | Hermes 为 18 类工具提供专用摘要格式；CC 用通用占位符 + Anthropic `cache_edits` API 服务端删除 |
-| **Layer 3: Context Collapse** | 读时投影——创建 collapse store，`projectView()` 实时生成虚拟视图，原始消息不变 | Phase 2 边界确定 | CC **惰性投影**（类比 SQL VIEW）；Hermes **急切就地替换**（类比 MATERIALIZED VIEW） |
-| **Layer 4: AutoCompact** | 全量 LLM 摘要（最贵），带熔断器（3 次失败永久禁用） | Phase 3 LLM 摘要 | CC 用**主模型**从零重写；Hermes 用**辅助模型**迭代更新，多层降级 |
+| 层级                            | 策略                                                      | Hermes 对应      | 关键差异                                                                  |
+| ----------------------------- | ------------------------------------------------------- | -------------- | --------------------------------------------------------------------- |
+| **Layer 1: Snip**             | 零成本整轮移除（空结果 turn、被拒工具调用）                                | Phase 1 去重     | CC 移除整 turn；Hermes 裁剪 content 级别                                      |
+| **Layer 2: Microcompact**     | 缓存感知精简——静默替换旧 tool_result 为通用占位符                        | Phase 1 工具结果裁剪 | Hermes 为 18 类工具提供专用摘要格式；CC 用通用占位符 + Anthropic `cache_edits` API 服务端删除 |
+| **Layer 3: Context Collapse** | 读时投影——创建 collapse store，`projectView()` 实时生成虚拟视图，原始消息不变 | Phase 2 边界确定   | CC **惰性投影**（类比 SQL VIEW）；Hermes **急切就地替换**（类比 MATERIALIZED VIEW）      |
+| **Layer 4: AutoCompact**      | 全量 LLM 摘要（最贵），带熔断器（3 次失败永久禁用）                           | Phase 3 LLM 摘要 | CC 用**主模型**从零重写；Hermes 用**辅助模型**迭代更新，多层降级                             |
 
-> \* "Dreaming"（做梦）是第三方工具 `lossless-code` 的概念——从历史会话提取重复模式注入未来会话。不是 Claude Code 原生机制。在 Hermes 中对应 Memory 系统（跨会话记忆），而非压缩系统（本会话内空间回收）。
+> **"Dreaming"**（做梦）是第三方工具 `lossless-code` 的概念——从历史会话提取重复模式注入未来会话。不是 Claude Code 原生机制。在 Hermes 中对应 Memory 系统（跨会话记忆），而非压缩系统（本会话内空间回收）。
 
 **架构哲学：**
 
