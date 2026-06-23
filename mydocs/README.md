@@ -9,6 +9,7 @@
 | [hermes-工作目录隔离机制.md](hermes-工作目录隔离机制.md) | Hermes 工作目录隔离机制：三层 cwd 管理（TERMINAL_CWD → _SESSION_CWD → _task_env_overrides）、6 大使用场景矩阵、ACP/batch_runner/TUI/Cron 调用链分析 | 2026-06-18 |
 | [hermes-整体架构分析.md](hermes-整体架构分析.md) | Hermes 整体架构分析：目录结构、功能分层（9层）、核心数据流、关键类与入口点、设计特点 | 2026-06-18 |
 | [hermes-AIAgent架构分析.md](hermes-AIAgent架构分析.md) | Hermes AIAgent 核心架构与运行机制：分层架构（5层）、10 环节流水线、agent/ 包 80+ 模块分工、依赖关系与重构演进 | 2026-06-22 |
+| [hermes-传输层深度分析.md](hermes-传输层深度分析.md) | Hermes 传输层深度分析：薄 ABC 设计哲学、三层调用架构（helpers→transports→adapters）、provider_data 逃生舱模式、Duck-Typing 向后兼容、与 litellm/LangChain/Claude Code 对比 | 2026-06-23 |
 | [hermes-工具系统分析.md](hermes-工具系统分析.md) | Hermes 工具系统全景分析：60+ 工具总览、设计原则、核心工具深度剖析、与 Claude Code 对比 | 2026-06-15 |
 | [hermes-工具执行引擎分析.md](hermes-工具执行引擎分析.md) | Hermes 工具执行引擎深度分析：tool_executor/tool_dispatch_helpers/tool_guardrails 三文件协作、串行/并发调度决策、18 种分发分支、环路检测守卫、与 LLM 配合机制 | 2026-06-22 |
 | [hermes-工具搜索桥接分析.md](hermes-工具搜索桥接分析.md) | Hermes 工具搜索桥接深度分析：渐进式工具暴露机制、三元桥接设计（tool_search/tool_describe/tool_call）、BM25 检索目录、双层调度解包、与 MCP 协议对比 | 2026-06-22 |

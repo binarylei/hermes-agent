@@ -255,7 +255,7 @@ def _dispatch_delegate_task(self)    # delegate_task 参数解包与调用
 | ------------------------------------------------------------------------- | ----- | ----------------------- |
 | [agent/context_compressor.py](../agent/context_compressor.py)             | ~119K | 旧消息摘要压缩、token 估算、压缩策略选择 |
 | [agent/conversation_compression.py](../agent/conversation_compression.py) | ~45K  | 压缩编排：判断触发时机、调用压缩器、结果集成  |
-|                                                                           |       |                         |
+
 
 #### 3.4.7 记忆管理
 
