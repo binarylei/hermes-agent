@@ -16,6 +16,8 @@ LLM API 本质上是**无状态的函数调用**——每次请求都是一个�
 
 **问题三：多入口隔离。** Hermes 运行在 CLI、Telegram、Discord 等 20+ 平台上。用户在 Telegram 上说"我女儿叫小米，生日 3 月 15 号"，切换到 CLI 后 Hermes 一无所知——每个平台的 session 是独立的。
 
+**问题四：跨项目记忆污染。** 同一 profile 下的项目 A 和项目 B 共享 `~/.hermes/memories/MEMORY.md`。在项目 A（Python 后端）中学到的"用户偏好 ruff 做 linting"，切换到项目 B（React 前端）后仍然生效——而项目 B 应该用 ESLint。所有项目的事实混在同一份文件中，无法按项目隔离。详见 [2.6 节](#26-项目级记忆隔离)。
+
 ### 1.2 记忆的四个层次
 
 从数据持久化的角度，Agent 的记忆需求可以拆分为四个递进的层次：
@@ -372,6 +374,67 @@ Turn N+1 开始时（前台，LLM 等待中）:
 
 **威胁扫描的分层策略。** 使用 `"strict"` 作用域（最激进）扫描记忆内容——误报的代价低（用户可重写），漏报的代价高（污染系统提示词）。扫描在三个位置执行：加载时（快照中替换为 `[BLOCKED: ...]` 占位符）、写入时（命中则拒绝落盘）、批量操作时（一条命中整批拒绝）。
 
+### 2.6 项目级记忆隔离
+
+[2.3.4 节](#234-与-claude-code-的路线分歧) 分析了 Hermes 与 Claude Code 在单文件记忆上的路线分歧。本节将视角扩大到"项目"维度——同一个用户在不同项目之间的记忆如何隔离，是记忆系统设计的上层应用问题。
+
+#### 2.6.1 三层各自的隔离能力
+
+将三层记忆架构放到"跨项目"维度下审视，各自的隔离能力如下：
+
+| 层次 | 存储位置 | 隔离粒度 | 项目间是否隔离 |
+|------|---------|---------|--------------|
+| SessionDB | `get_hermes_home() / "state.db"` | session 级 | ❌ 不隔离——所有项目的 session 混在一个 SQLite 文件中，靠 `session_id` 区分而非项目路径 |
+| MemoryStore | `get_hermes_home() / "memories/"` | profile 级 | ❌ 不隔离——同一 profile 下所有项目共享 `MEMORY.md` 和 `USER.md`，无项目维度 |
+| MemoryProvider | provider 决定（向量库/云服务） | provider 决定 | ⚠️ 部分——取决于具体 provider 的实现 |
+
+**MemoryProvider 的隔离情况**因 provider 而异。以 Honcho 为例，`resolve_session_name()` 提供 8 种 session 命名策略，其中 `per_repo` 策略通过 git remote URL 派生 session 名，**按仓库隔离**——这意味着 Honcho 的语义记忆层可以做到项目级隔离。但 Honcho 只是 8+ provider 之一，并非默认；且 session 级隔离不等同于记忆条目的项目级标记。
+
+#### 2.6.2 已有基础设施 vs 缺失项
+
+Hermes 已经拥有一些项目级基础设施，但记忆系统没有利用它们：
+
+| 已有能力 | 实现位置 | 与记忆的关系 |
+|---------|---------|------------|
+| `.hermes.md` / `HERMES.md` | `agent/prompt_builder.py:_find_hermes_md()` | ✅ 项目上下文文件，从 cwd 向上走到 git root 自动发现。内容注入系统提示词。（类似 Claude Code 的 CLAUDE.md） |
+| `./.hermes/plugins/` | `hermes_cli/plugins.py` | ✅ 项目级插件目录，需 `HERMES_ENABLE_PROJECT_PLUGINS=1` 启用 |
+| `./.hermes/plans/` | `agent/plan_mode.py` | ✅ 项目级计划输出目录 |
+| `skills.external_dirs` | `agent/skill_utils.py` | ✅ 用户可在 `config.yaml` 中配置外部技能目录（可指向项目路径） |
+| `./.hermes/memories/` | — | ❌ **不存在**——没有项目级记忆目录 |
+| `./.hermes/skills/` | — | ❌ **不存在**——没有项目级技能目录 |
+
+**关键缺失**：Hermes 没有 `./.hermes/memories/` 的概念。如果项目 A 根目录下有 `.hermes/memories/MEMORY.md`，系统不会读取它——MemoryStore 只读 `get_hermes_home() / "memories/"`，即 profile 全局路径。
+
+#### 2.6.3 根因：冻结快照与动态加载的矛盾
+
+这不是一个功能遗漏，而是 [2.3.2 节](#232-冻结快照与-prompt-cache-的关系) 所述冻结快照机制的**直接推论**：
+
+1. **硬约束**：system prompt 在整个会话期间必须保持字节稳定，否则 prompt prefix cache 立即失效
+2. **推论**：MemoryStore 的 `_system_prompt_snapshot` 必须在会话启动时确定，此后不能修改
+3. **结果**：会话启动时只能加载一份快照——如果加载 profile 全局记忆，则无法按项目区分；如果按项目加载，则需要在会话中途切换项目时修改快照（破坏缓存）
+
+**Claude Code 如何绕过这个约束？** Claude Code 的记忆注入发生在 **harness 层**——在 API 调用之前，harness 将项目级 `MEMORY.md`（索引）拼接到消息列表头部。这部分内容不进入被缓存的 system prompt，可以随项目切换而动态变化。Hermes 没有独立的 harness 层——记忆通过 `format_for_system_prompt()` 直接注入 system prompt，被 prompt cache 锁定。
+
+**现有替代路径**（各有代价）：
+
+| 替代方案 | 实现方式 | 代价 |
+|---------|---------|------|
+| **Profile 隔离** | 为每个项目创建独立 profile（`hermes -p project-a`） | 所有配置、API key、skills 需重复设置；不能在一个会话中切换项目 |
+| **Honcho per_repo 策略** | `honcho.session_strategy: per_repo`，按 git remote 隔离 session | 仅覆盖 MemoryProvider 层；内置 MemoryStore 仍共享 |
+| **external_dirs 技能目录** | `skills.external_dirs` 指向项目路径 | 不解决记忆问题；仅覆盖技能维度 |
+
+#### 2.6.4 与 Claude Code / Codex 的对比
+
+| 维度 | Claude Code | Codex | Hermes |
+|------|------------|-------|--------|
+| **项目指令文件** | `CLAUDE.md`（git 根目录，可提交） | `AGENTS.md`（全局 + 项目根 walk） | `.hermes.md`（cwd → git root 自动发现） |
+| **项目级记忆** | `.claude/memory/MEMORY.md`（按 repo hash 自动隔离） | `~/.codex/memories/`（自动生成，基于对话总结） | ❌ 仅有 profile 全局 `memories/` |
+| **记忆注入位置** | harness 层（不进入 cached system prompt） | 系统提示词（session 内不可变） | 系统提示词（冻结快照） |
+| **项目切换时** | harness 自动加载新项目的 MEMORY.md | 代码项目记忆通常不跨项目共享 | 需手动 `/new` + 切换 profile |
+| **团队共享** | `CLAUDE.md` + `.claude/rules/` 可 git 提交 | `AGENTS.md` 可提交（`.agents/` 标准化提案中） | `.hermes.md` 可 git 提交，但记忆不可共享 |
+
+**核心差异**：Claude Code 和 Codex 都区分了"项目指令"（git-committed，团队共享，行为约束）和"项目记忆"（auto-generated，个人私有，按 repo 隔离）。Hermes 有前者（`.hermes.md`），但后者缺失——内置 MemoryStore 不区分项目，MemoryProvider 的隔离取决于具体实现。
+
 ---
 
 ## 三、源码解读
@@ -712,6 +775,8 @@ def _drain_sync_executor(self):
 - AGENTS.md：Footprint Ladder（新增能力决策阶梯）和 prompt cache 保护原则
 - [hermes-AIAgent架构分析](hermes-AIAgent架构分析.md)：记忆系统在 10 环节流水线中的位置
 - [hermes-工具系统分析](hermes-工具系统分析.md)：核心工具注册与分发机制（含 `_AGENT_LOOP_TOOLS` 拦截模式）
+- [hermes-工作目录隔离机制](hermes-工作目录隔离机制.md)：三层 cwd 管理机制，项目级基础设施的另一维度
+- 本文 [2.6 节](#26-项目级记忆隔离)：项目级记忆隔离的完整分析，含与 Claude Code、Codex 的对比
 
 ### 4.2 外部参考
 

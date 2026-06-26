@@ -62,6 +62,16 @@ export default defineConfig({
           { text: '工作目录隔离机制', link: '/hermes-工作目录隔离机制' },
         ],
       },
+      {
+        text: 'LiteLLM 对比分析',
+        collapsed: false,
+        items: [
+          { text: '统一提供商接口设计', link: '/litellm/litelllm-统一提供商接口设计' },
+          { text: 'OpenAI 客户端请求处理流程', link: '/litellm/litellm-OpenAI客户端请求处理流程' },
+          { text: 'Anthropic 客户端请求处理流程', link: '/litellm/litellm-Anthropic客户端请求处理流程' },
+          { text: 'Transport/BaseConfig 对比', link: '/litellm/litellm-Hermes与LiteLLM的Transport-BaseConfig对比' },
+        ],
+      },
     ],
 
     // 本地搜索
